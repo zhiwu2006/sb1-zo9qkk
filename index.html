@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>单词配对消除游戏</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f0f8ff;
+        }
+        .game-container {
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+        }
+        .word-container {
+            width: 48%;
+            border: 2px solid #4a90e2;
+            border-radius: 15px;
+            padding: 15px;
+            min-height: 300px;
+            background-color: #ffffff;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .word-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 10px;
+        }
+        .word {
+            padding: 12px;
+            background-color: #e0e0e0;
+            color: #333;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: bold;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .word:hover {
+            background-color: #d0d0d0;
+            transform: translateY(-2px);
+        }
+        .selected {
+            background-color: #ffd700;
+            color: #000;
+        }
+        .correct {
+            background-color: #32cd32;
+            color: #fff;
+            animation: fadeOut 0.5s ease forwards;
+        }
+        .hint {
+            background-color: #90ee90;
+            color: #000;
+        }
+        @keyframes fadeOut {
+            to {
+                opacity: 0;
+                transform: scale(0.8);
+            }
+        }
+        h1 {
+            color: #4a90e2;
+            text-align: center;
+            font-size: 2.5em;
+            margin-bottom: 20px;
+        }
+        h2 {
+            color: #333;
+            font-size: 1.5em;
+            margin-bottom: 15px;
+        }
+        #score, #result, #group-info {
+            text-align: center;
+            font-size: 1.2em;
+            margin-top: 20px;
+            color: #4a90e2;
+        }
+        #result {
+            font-weight: bold;
+            color: #32cd32;
+        }
+        .button {
+            display: inline-block;
+            margin: 20px 10px;
+            padding: 10px 20px;
+            font-size: 1.2em;
+            background-color: #4a90e2;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        .button:hover {
+            background-color: #3a7bc8;
+        }
+        .button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        #button-container {
+            text-align: center;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 600px;
+            border-radius: 10px;
+        }
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        #fileImport {
+            display: none;
+        }
+        .file-import-label {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #4a90e2;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        .file-import-label:hover {
+            background-color: #3a7bc8;
+        }
+    </style>
+</head>
+<body>
+    <h1>单词配对消除游戏</h1>
+    <p>说明：点击左侧方框中的一个单词，然后点击右侧方框中你认为相对应的中文注释。如果配对正确，两个词条将会消失。尝试消除所有词条！如果一个单词被点击三次还未配对成功，将会显示提示。</p>
+    <div class="game-container">
+        <div class="word-container">
+            <h2>单词</h2>
+            <div id="english-words" class="word-grid"></div>
+        </div>
+        <div class="word-container">
+            <h2>中文注释</h2>
+            <div id="chinese-words" class="word-grid"></div>
+        </div>
+    </div>
+    <div id="score">得分：0 / 0</div>
+    <div id="group-info">当前组：1</div>
+    <div id="result"></div>
+    <div id="button-container">
+        <button id="prev-button" class="button" disabled>上一组</button>
+        <button id="reset-button" class="button">重置游戏</button>
+        <button id="next-button" class="button">下一组</button>
+        <button id="import-button" class="button">导入单词</button>
+    </div>
+
+    <div id="importModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>导入单词</h2>
+            <p>请输入 JSON 格式的单词对，格式为：[["英文单词", "中文意思"], ...]</p>
+            <textarea id="importWords" placeholder='[["apple", "苹果"], ["banana", "香蕉"], ["orange", "橙子"]]'></textarea>
+            <button id="submitImport" class="button">导入文本</button>
+            <br><br>
+            <p>或者选择一个 JSON 文件导入：</p>
+            <input type="file" id="fileImport" accept=".json">
+            <label for="fileImport" class="file-import-label">选择文件</label>
+            <span id="fileName"></span>
+        </div>
+    </div>
+
+    <script src="src/game.js"></script>
+</body>
+</html>
